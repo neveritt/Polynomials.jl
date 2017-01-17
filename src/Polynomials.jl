@@ -59,24 +59,25 @@ p + q                  # ERROR: Polynomials must have same variable.
 ```
 
 """
-immutable Poly{T}
-  a::Vector{T}
+immutable Poly{T,V}
+  a::V
   var::Symbol
-  @compat function (::Type{Poly}){T<:Number}(a::Vector{T}, var::SymbolLike = :x)
+  @compat function (::Type{Poly}){T<:Number}(a::AbstractArray{T}, var::SymbolLike = :x)
+    V = typeof(a)
     # if a == [] we replace it with a = [0]
     if length(a) == 0
-      return new{T}(zeros(T,1), @compat Symbol(var))
+      return new{T,V}(spzeros(T,1), @compat Symbol(var))
     else
       # determine the last nonzero element and truncate a accordingly
       a_last = max(1,findlast(x->x!=zero(T), a))
-      new{T}(a[1:a_last], @compat Symbol(var))
+      new{T,V}(a[1:a_last], @compat Symbol(var))
     end
   end
 end
 
-Poly(n::Number, var::SymbolLike = :x) = Poly([n], var)
-@compat (::Type{Poly{T}}){T,S}(x::Vector{S}, var::SymbolLike = :x) =
-  Poly(convert(Vector{T}, x), var)
+Poly{T<:Number}(n::T, var::SymbolLike = :x) = Poly([n], var)
+@compat (::Type{Poly{T}}){T,S}(a::AbstractVector{S}, var::SymbolLike = :x) =
+  Poly(map(x->convert(T,x), a), var)
 
 # create a Poly object from its roots
 """
@@ -108,7 +109,7 @@ poly(A::Matrix, var::SymbolLike=:x) = poly(eigvals(A), var)
 include("show.jl") # display polynomials.
 
 convert{T}(::Type{Poly{T}}, p::Poly{T}) = p
-convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(Vector{T}, p.a), p.var)
+convert{T}(::Type{Poly{T}}, p::Poly) = Poly(map(x->convert(T,x), p.a), p.var)
 convert{T, S<:Number}(::Type{Poly{T}}, x::S, var::SymbolLike=:x) = Poly(T[x], var)
 convert{T, S<:Number}(::Type{Poly{T}}, x::AbstractArray{S}, var::SymbolLike=:x) = map(el->Poly(T[el],var), x)
 promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}

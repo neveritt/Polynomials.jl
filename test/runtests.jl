@@ -289,3 +289,21 @@ p = Poly([0,one(Float64)])
 @test Poly{Complex{Float64}} == typeof(p+1im)
 @test Poly{Complex{Float64}} == typeof(1im-p)
 @test Poly{Complex{Float64}} == typeof(p*1im)
+
+## preservation of sparsity
+p1 = Poly(spzeros(Int,0))
+a  = spzeros(Int,3)
+a[2] = 1
+p2 = Poly(a)
+p3 = Poly(sprandn(2,0.5))
+p4 = Poly(sprandn(4,0.3))
+p5 = Poly{Float64}(a)
+
+@test typeof(p1.a) == SparseVector{Int,Int}
+@test typeof(p2.a) == SparseVector{Int,Int}
+@test typeof(p3.a) == SparseVector{Float64,Int}
+@test typeof(p4.a) == SparseVector{Float64,Int}
+@test typeof(p5.a) == SparseVector{Float64,Int}
+
+@test issparse(convert(Poly{Float64},p1).a)
+@test issparse(convert(Poly{Float64},p1.a))
